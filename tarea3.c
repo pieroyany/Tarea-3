@@ -1,0 +1,105 @@
+#include "tdas/extra.h"
+#include "tdas/list.h"
+#include "tdas/heap.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+typedef struct {
+    char *nombre;
+    int valor;
+    int peso;
+} item_list;
+
+typedef struct {
+    int id;
+    char *nombre;                                               
+    char *descripcion;
+    item_list *items; // Array de items
+    int num_items; // Número de items en la habitación
+    int arriba;
+    int abajo;
+    int izquierda;
+    int derecha;
+    char final;
+} habitacion;
+
+item_list* parse_items(char *cadena, int *num_items) {
+    item_list *items = malloc(sizeof(item_list) * 2); // máximo 2 ítems por sala
+    *num_items = 0;
+
+    char *token = strtok(cadena, ";");
+    while (token != NULL && *num_items < 2) {
+        char *nombre = strtok(token, ",");
+        char *valor_str = strtok(NULL, ",");
+        char *peso_str = strtok(NULL, ",");
+
+        if (nombre && valor_str && peso_str) {
+            items[*num_items].nombre = strdup(nombre);
+            items[*num_items].valor = atoi(valor_str);
+            items[*num_items].peso = atoi(peso_str);
+            (*num_items)++;
+        }
+
+        token = strtok(NULL, ";");
+    }
+
+    return items;
+}
+
+void leer_archivo() {
+    FILE *archivo = fopen("data/graphquest.csv", "r");
+    if (archivo == NULL) {
+        perror("Error al abrir el archivo");
+        return;
+    }
+    char **campos;
+    campos = leer_linea_csv(archivo, ',');
+
+    while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
+        habitacion h;
+        h.id = atoi(campos[0]);
+        h.nombre = strdup(campos[1]);
+        h.descripcion = strdup(campos[2]);
+
+        char *items_str = strdup(campos[3]);
+        h.items = parse_items(items_str, &h.num_items);
+        free(items_str);
+
+        h.arriba = atoi(campos[4]);
+        h.abajo = atoi(campos[5]);
+        h.izquierda = atoi(campos[6]);
+        h.derecha = atoi(campos[7]);
+        h.final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
+
+        // Imprimir para verificar
+        printf("ID: %d\n", h.id);
+        printf("Nombre: %s\n", h.nombre);
+        printf("Descripcion: %s\n", h.descripcion);
+        printf("Items:\n");
+        for (int i = 0; i < h.num_items; i++) {
+            printf("  - %s (Valor: %d, Peso: %d)\n", h.items[i].nombre, h.items[i].valor, h.items[i].peso);
+        }
+        printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h.arriba, h.abajo, h.izquierda, h.derecha);
+        printf("Es final: %c\n", h.final);
+        printf("-----------------------------\n");
+
+        // Liberar memoria
+        for (int i = 0; i < h.num_items; i++) {
+            free(h.items[i].nombre);
+        }
+        free(h.items);
+        free(h.nombre);
+        free(h.descripcion);
+    }
+
+    fclose(archivo);
+}
+
+
+int main() {
+    leer_archivo();
+
+  return 0;
+}
