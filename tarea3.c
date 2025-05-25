@@ -31,6 +31,10 @@ int is_equal_int(void *a, void *b) {
     return *((int *)a) == *((int *)b);
 }
 
+int is_equal_habitacion(void *a, void *b) {
+    return a == b; // compara punteros directamente
+}
+
 item_list* parse_items(char *cadena, int *num_items) {
     item_list *items = malloc(sizeof(item_list) * 2); // máximo 2 ítems por sala
     *num_items = 0;
@@ -89,49 +93,64 @@ List *leer_archivo() {
         int *id_ptr = malloc(sizeof(int));
         *id_ptr = h->id;
 
-        // Insertar en el mapa
         map_insert(habitaciones, id_ptr, h_ptr);
-
-        /*
-        printf("ID: %d\n", h.id);
-        printf("Nombre: %s\n", h.nombre);
-        printf("Descripcion: %s\n", h.descripcion);
-        printf("Items:\n");
-        for (int i = 0; i < h.num_items; i++) {
-            printf("  - %s (Valor: %d, Peso: %d)\n", h.items[i].nombre, h.items[i].valor, h.items[i].peso);
-        }
-        printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h.arriba, h.abajo, h.izquierda, h.derecha);
-        printf("Es final: %c\n", h.final);
-        printf("-----------------------------\n");
-        */
-
     }
     fclose(archivo);
+}
+
+Map *construir_grafo(Map *habitaciones) {
+    Map *grafo = map_create(is_equal_habitacion);
+
+    MapPair *pair = map_first(habitaciones);
+    while (pair != NULL) {
+        habitacion *hab = pair->value;
+        List *adyacentes = list_create();
+
+        if (hab->arriba != -1) {
+            MapPair *p = map_search(habitaciones, &hab->arriba);
+            if (p) list_pushBack(adyacentes, p->value);
+        }
+        if (hab->abajo != -1) {
+            MapPair *p = map_search(habitaciones, &hab->abajo);
+            if (p) list_pushBack(adyacentes, p->value);
+        }
+        if (hab->izquierda != -1) {
+            MapPair *p = map_search(habitaciones, &hab->izquierda);
+            if (p) list_pushBack(adyacentes, p->value);
+        }
+        if (hab->derecha != -1) {
+            MapPair *p = map_search(habitaciones, &hab->derecha);
+            if (p) list_pushBack(adyacentes, p->value);
+        }
+
+        map_insert(grafo, hab, adyacentes);
+        pair = map_next(habitaciones);
+    }
+
+    //imprimir
+    printf("----- Grafo de habitaciones -----\n");
+    MapPair *par = map_first(grafo);
+    while (par != NULL) {
+        habitacion *h = par->key;
+        List *ady = par->value;
+        printf("Habitación %s (ID: %d) conecta con:\n", h->nombre, h->id);
+
+        habitacion *vecino = list_first(ady);
+        while (vecino != NULL) {
+            printf("  -> %s (ID: %d)\n", vecino->nombre, vecino->id);
+            vecino = list_next(ady);
+        }
+
+        printf("----------------------\n");
+        par = map_next(grafo);
+    }
+    
+    return grafo;
 }
 
 
 int main() {
     leer_archivo();
-
-    printf("Habitaciones cargadas:\n");
-    MapPair *par = map_first(habitaciones);
-    while (par != NULL) {
-        int *id = (int *)par->key;
-        habitacion *h = (habitacion *)par->value;
-
-        printf("ID: %d\n", *id);
-        printf("Nombre: %s\n", h->nombre);
-        printf("Descripcion: %s\n", h->descripcion);
-        printf("Items:\n");
-        for (int i = 0; i < h->num_items; i++) {
-            printf("  - %s (Valor: %d, Peso: %d)\n", h->items[i].nombre, h->items[i].valor, h->items[i].peso);
-        }
-        printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h->arriba, h->abajo, h->izquierda, h->derecha);
-        printf("Es final: %c\n", h->final);
-        printf("-----------------------------\n");
-
-        par = map_next(habitaciones);
-    }
-
+    Map *grafo = construir_grafo(habitaciones);
     return 0;
 }
