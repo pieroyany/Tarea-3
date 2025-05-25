@@ -27,6 +27,13 @@ typedef struct {
     char final;
 } habitacion;
 
+typedef struct {
+    List *inventario; // Lista de items_list
+    int peso_total;
+    int puntaje;
+    int tiempo;
+} Jugador;
+
 int is_equal_int(void *a, void *b) {
     return *((int *)a) == *((int *)b);
 }
@@ -128,12 +135,13 @@ Map *construir_grafo(Map *habitaciones) {
     }
 
     //imprimir
+    /*
     printf("----- Grafo de habitaciones -----\n");
     MapPair *par = map_first(grafo);
     while (par != NULL) {
         habitacion *h = par->key;
         List *ady = par->value;
-        printf("Habitación %s (ID: %d) conecta con:\n", h->nombre, h->id);
+        printf("Habitacion %s (ID: %d) conecta con:\n", h->nombre, h->id);
 
         habitacion *vecino = list_first(ady);
         while (vecino != NULL) {
@@ -144,13 +152,54 @@ Map *construir_grafo(Map *habitaciones) {
         printf("----------------------\n");
         par = map_next(grafo);
     }
-    
+    */
     return grafo;
 }
 
+void mostrar_estado(habitacion *hab_actual, Jugador *jugador) {
+    printf("\n=== ESTADO ACTUAL ===\n");
+    printf("Ubicación: %s\n", hab_actual->nombre);
+    printf("Descripción: %s\n", hab_actual->descripcion);
+    
+    printf("\nItems en la habitación:\n");
+    if (hab_actual->num_items == 0) {
+        printf("No hay items disponibles\n");
+    } else {
+        for (int i = 0; i < hab_actual->num_items; i++) {
+            printf("%d. %s (Valor: %d, Peso: %d)\n", 
+                   i+1, 
+                   hab_actual->items[i].nombre,
+                   hab_actual->items[i].valor,
+                   hab_actual->items[i].peso);
+        }
+    }
+    
+    printf("\nInventario:\n");
+    if (list_size(jugador->inventario) == 0) {
+        printf("Inventario vacío\n");
+    } else {
+        item_list *item;
+        int i = 1;
+        for (item = list_first(jugador->inventario); item != NULL; item = list_next(jugador->inventario)) {
+            printf("%d. %s (Valor: %d, Peso: %d)\n", 
+                   i++, 
+                   item->nombre,
+                   item->valor,
+                   item->peso);
+        }
+    }
+    
+    printf("\nTiempo restante: %d\n", jugador->tiempo);
+    printf("Puntaje actual: %d\n", jugador->puntaje);
+    printf("Peso total: %d\n", jugador->peso_total);
+}
 
 int main() {
     leer_archivo();
+
     Map *grafo = construir_grafo(habitaciones);
+
+    //jugar(habitaciones, grafo);
+
     return 0;
 }
