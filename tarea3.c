@@ -66,27 +66,28 @@ List *leer_archivo() {
     char **campos = leer_linea_csv(archivo, ',');
 
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-        habitacion h;
+        habitacion *h = malloc(sizeof(habitacion));
 
-        h.id = atoi(campos[0]);
-        h.nombre = strdup(campos[1]);
-        h.descripcion = strdup(campos[2]);
+
+        h->id = atoi(campos[0]);
+        h->nombre = strdup(campos[1]);
+        h->descripcion = strdup(campos[2]);
 
         char *items_str = strdup(campos[3]);
-        h.items = parse_items(items_str, &h.num_items);
+        h->items = parse_items(items_str, &h->num_items);
         free(items_str);
 
-        h.arriba = atoi(campos[4]);
-        h.abajo = atoi(campos[5]);
-        h.izquierda = atoi(campos[6]);
-        h.derecha = atoi(campos[7]);
-        h.final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
+        h->arriba = atoi(campos[4]);
+        h->abajo = atoi(campos[5]);
+        h->izquierda = atoi(campos[6]);
+        h->derecha = atoi(campos[7]);
+        h->final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
 
         habitacion *h_ptr = malloc(sizeof(habitacion));
-        *h_ptr = h;
+        *h_ptr = *h;
 
         int *id_ptr = malloc(sizeof(int));
-        *id_ptr = h.id;
+        *id_ptr = h->id;
 
         // Insertar en el mapa
         map_insert(habitaciones, id_ptr, h_ptr);
@@ -112,7 +113,7 @@ List *leer_archivo() {
 int main() {
     leer_archivo();
 
-    printf("Habitaciones cargadasm:\n");
+    printf("Habitaciones cargadas:\n");
     MapPair *par = map_first(habitaciones);
     while (par != NULL) {
         int *id = (int *)par->key;
