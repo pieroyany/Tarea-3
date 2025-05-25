@@ -1,10 +1,12 @@
 #include "tdas/extra.h"
 #include "tdas/list.h"
 #include "tdas/heap.h"
+#include "tdas/map.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+Map *habitaciones;
 
 typedef struct {
     char *nombre;
@@ -24,6 +26,10 @@ typedef struct {
     int derecha;
     char final;
 } habitacion;
+
+int is_equal_int(void *a, void *b) {
+    return *((int *)a) == *((int *)b);
+}
 
 item_list* parse_items(char *cadena, int *num_items) {
     item_list *items = malloc(sizeof(item_list) * 2); // máximo 2 ítems por sala
@@ -55,39 +61,64 @@ List *leer_archivo() {
         return NULL;
     }
 
-    char **campos;
-    campos = leer_linea_csv(archivo, ',');
+    habitaciones = map_create(is_equal_int);
 
-    List *habitaciones = list_create(); // Crear lista para almacenar las habitaciones del grafo
+    char **campos = leer_linea_csv(archivo, ',');
 
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-        habitacion *h = malloc(sizeof(habitacion));
-        h->id = atoi(campos[0]);
-        h->nombre = strdup(campos[1]);
-        h->descripcion = strdup(campos[2]);
+        habitacion h;
+
+        h.id = atoi(campos[0]);
+        h.nombre = strdup(campos[1]);
+        h.descripcion = strdup(campos[2]);
 
         char *items_str = strdup(campos[3]);
-        h->items = parse_items(items_str, &h->num_items);
+        h.items = parse_items(items_str, &h.num_items);
         free(items_str);
 
-        h->arriba = atoi(campos[4]);
-        h->abajo = atoi(campos[5]);
-        h->izquierda = atoi(campos[6]);
-        h->derecha = atoi(campos[7]);
-        h->final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
+        h.arriba = atoi(campos[4]);
+        h.abajo = atoi(campos[5]);
+        h.izquierda = atoi(campos[6]);
+        h.derecha = atoi(campos[7]);
+        h.final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
 
-        list_pushBack(habitaciones, h);
+        habitacion *h_ptr = malloc(sizeof(habitacion));
+        *h_ptr = h;
+
+        int *id_ptr = malloc(sizeof(int));
+        *id_ptr = h.id;
+
+        // Insertar en el mapa
+        map_insert(habitaciones, id_ptr, h_ptr);
+
+        /*
+        printf("ID: %d\n", h.id);
+        printf("Nombre: %s\n", h.nombre);
+        printf("Descripcion: %s\n", h.descripcion);
+        printf("Items:\n");
+        for (int i = 0; i < h.num_items; i++) {
+            printf("  - %s (Valor: %d, Peso: %d)\n", h.items[i].nombre, h.items[i].valor, h.items[i].peso);
+        }
+        printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h.arriba, h.abajo, h.izquierda, h.derecha);
+        printf("Es final: %c\n", h.final);
+        printf("-----------------------------\n");
+        */
+
     }
-
     fclose(archivo);
-    return habitaciones;
 }
 
 
 int main() {
-    List *habitaciones = leer_archivo();
-    for (habitacion *h = list_first(habitaciones); h != NULL; h = list_next(habitaciones)) {
-        printf("ID: %d\n", h->id);
+    leer_archivo();
+
+    printf("Habitaciones cargadasm:\n");
+    MapPair *par = map_first(habitaciones);
+    while (par != NULL) {
+        int *id = (int *)par->key;
+        habitacion *h = (habitacion *)par->value;
+
+        printf("ID: %d\n", *id);
         printf("Nombre: %s\n", h->nombre);
         printf("Descripcion: %s\n", h->descripcion);
         printf("Items:\n");
@@ -97,19 +128,9 @@ int main() {
         printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h->arriba, h->abajo, h->izquierda, h->derecha);
         printf("Es final: %c\n", h->final);
         printf("-----------------------------\n");
-    }
 
-    // Recuerda liberar al final
-    for (habitacion *h = list_first(habitaciones); h != NULL; h = list_next(habitaciones)) {
-        for (int i = 0; i < h->num_items; i++) free(h->items[i].nombre);
-        free(h->items);
-        free(h->nombre);
-        free(h->descripcion);
-        free(h);
+        par = map_next(habitaciones);
     }
-    free(habitaciones);
 
     return 0;
-
-  return 0;
 }
