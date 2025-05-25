@@ -220,6 +220,72 @@ void recoger_item(habitacion *hab_actual, Jugador *jugador, int indice) {
     printf("Has recogido: %s\n", item->nombre);
 } 
 
+void descartar_item(Jugador *jugador, int indice) {
+    if (indice < 1 || indice > list_size(jugador->inventario)) {
+        printf("Ítem no válido\n");
+        return;
+    }
+    
+    item_list *item = list_first(jugador->inventario);
+    for (int i = 1; i < indice; i++) {
+        item = list_next(jugador->inventario);
+    }
+    
+    printf("Has descartado: %s\n", item->nombre);
+    jugador->puntaje -= item->valor;
+    jugador->peso_total -= item->peso;
+    
+    list_popCurrent(jugador->inventario);
+    free(item->nombre);
+    free(item);
+    
+    jugador->tiempo--;
+}
+
+void mostrar_opciones_movimiento(habitacion *hab_actual) {
+    printf("\nOpciones de movimiento:\n");
+    if (hab_actual->arriba != -1) printf("1. Arriba (Habitación %d)\n", hab_actual->arriba);
+    if (hab_actual->abajo != -1) printf("2. Abajo (Habitación %d)\n", hab_actual->abajo);
+    if (hab_actual->izquierda != -1) printf("3. Izquierda (Habitación %d)\n", hab_actual->izquierda);
+    if (hab_actual->derecha != -1) printf("4. Derecha (Habitación %d)\n", hab_actual->derecha);
+}
+
+int mover_jugador(habitacion *hab_actual, Jugador *jugador, int direccion) {
+    int nuevo_id = -1;
+    
+    switch(direccion) {
+        case 1: // Arriba
+            nuevo_id = hab_actual->arriba;
+            break;
+        case 2: // Abajo
+            nuevo_id = hab_actual->abajo;
+            break;
+        case 3: // Izquierda
+            nuevo_id = hab_actual->izquierda;
+            break;
+        case 4: // Derecha
+            nuevo_id = hab_actual->derecha;
+            break;
+        default:
+            printf("Dirección no válida\n");
+            return hab_actual->id;
+    }
+    
+    if (nuevo_id == -1) {
+        printf("No puedes moverte en esa dirección\n");
+        return hab_actual->id;
+    }
+    
+    // calcular tiempo
+    int tiempo_consumido = (jugador->peso_total + 1) / 10;
+    if (tiempo_consumido < 1) tiempo_consumido = 1;
+    
+    jugador->tiempo -= tiempo_consumido;
+    printf("Te has movido. Tiempo consumido: %d\n", tiempo_consumido);
+    
+    return nuevo_id;
+}
+
 int main() {
     leer_archivo();
 
