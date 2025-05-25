@@ -48,58 +48,68 @@ item_list* parse_items(char *cadena, int *num_items) {
     return items;
 }
 
-void leer_archivo() {
+List *leer_archivo() {
     FILE *archivo = fopen("data/graphquest.csv", "r");
     if (archivo == NULL) {
         perror("Error al abrir el archivo");
-        return;
+        return NULL;
     }
+
     char **campos;
     campos = leer_linea_csv(archivo, ',');
 
+    List *habitaciones = list_create(); // Crear lista para almacenar las habitaciones del grafo
+
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-        habitacion h;
-        h.id = atoi(campos[0]);
-        h.nombre = strdup(campos[1]);
-        h.descripcion = strdup(campos[2]);
+        habitacion *h = malloc(sizeof(habitacion));
+        h->id = atoi(campos[0]);
+        h->nombre = strdup(campos[1]);
+        h->descripcion = strdup(campos[2]);
 
         char *items_str = strdup(campos[3]);
-        h.items = parse_items(items_str, &h.num_items);
+        h->items = parse_items(items_str, &h->num_items);
         free(items_str);
 
-        h.arriba = atoi(campos[4]);
-        h.abajo = atoi(campos[5]);
-        h.izquierda = atoi(campos[6]);
-        h.derecha = atoi(campos[7]);
-        h.final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
+        h->arriba = atoi(campos[4]);
+        h->abajo = atoi(campos[5]);
+        h->izquierda = atoi(campos[6]);
+        h->derecha = atoi(campos[7]);
+        h->final = (campos[8][0] == 'S' || campos[8][0] == 's') ? 'S' : 'N';
 
-        // Imprimir para verificar
-        printf("ID: %d\n", h.id);
-        printf("Nombre: %s\n", h.nombre);
-        printf("Descripcion: %s\n", h.descripcion);
-        printf("Items:\n");
-        for (int i = 0; i < h.num_items; i++) {
-            printf("  - %s (Valor: %d, Peso: %d)\n", h.items[i].nombre, h.items[i].valor, h.items[i].peso);
-        }
-        printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h.arriba, h.abajo, h.izquierda, h.derecha);
-        printf("Es final: %c\n", h.final);
-        printf("-----------------------------\n");
-
-        // Liberar memoria
-        for (int i = 0; i < h.num_items; i++) {
-            free(h.items[i].nombre);
-        }
-        free(h.items);
-        free(h.nombre);
-        free(h.descripcion);
+        list_pushBack(habitaciones, h);
     }
 
     fclose(archivo);
+    return habitaciones;
 }
 
 
 int main() {
-    leer_archivo();
+    List *habitaciones = leer_archivo();
+    for (habitacion *h = list_first(habitaciones); h != NULL; h = list_next(habitaciones)) {
+        printf("ID: %d\n", h->id);
+        printf("Nombre: %s\n", h->nombre);
+        printf("Descripcion: %s\n", h->descripcion);
+        printf("Items:\n");
+        for (int i = 0; i < h->num_items; i++) {
+            printf("  - %s (Valor: %d, Peso: %d)\n", h->items[i].nombre, h->items[i].valor, h->items[i].peso);
+        }
+        printf("Arriba: %d, Abajo: %d, Izquierda: %d, Derecha: %d\n", h->arriba, h->abajo, h->izquierda, h->derecha);
+        printf("Es final: %c\n", h->final);
+        printf("-----------------------------\n");
+    }
+
+    // Recuerda liberar al final
+    for (habitacion *h = list_first(habitaciones); h != NULL; h = list_next(habitaciones)) {
+        for (int i = 0; i < h->num_items; i++) free(h->items[i].nombre);
+        free(h->items);
+        free(h->nombre);
+        free(h->descripcion);
+        free(h);
+    }
+    free(habitaciones);
+
+    return 0;
 
   return 0;
 }
