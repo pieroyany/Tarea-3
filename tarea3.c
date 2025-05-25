@@ -194,6 +194,32 @@ void mostrar_estado(habitacion *hab_actual, Jugador *jugador) {
     printf("Peso total: %d\n", jugador->peso_total);
 }
 
+void recoger_item(habitacion *hab_actual, Jugador *jugador, int indice) {
+    if (indice < 1 || indice > hab_actual->num_items) {
+        printf("Ítem no válido\n");
+        return;
+    }
+    
+    item_list *item = &hab_actual->items[indice-1];
+    
+    item_list *nuevo_item = malloc(sizeof(item_list));
+    nuevo_item->nombre = strdup(item->nombre);
+    nuevo_item->valor = item->valor;
+    nuevo_item->peso = item->peso;
+    
+    list_pushBack(jugador->inventario, nuevo_item);
+    jugador->puntaje += item->valor;
+    jugador->peso_total += item->peso;
+    
+    for (int i = indice-1; i < hab_actual->num_items-1; i++) {
+        hab_actual->items[i] = hab_actual->items[i+1];
+    }
+    hab_actual->num_items--;
+    
+    jugador->tiempo--;
+    printf("Has recogido: %s\n", item->nombre);
+} 
+
 int main() {
     leer_archivo();
 
