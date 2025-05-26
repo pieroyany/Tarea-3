@@ -158,47 +158,80 @@ Map *construir_grafo(Map *habitaciones) {
     return grafo;
 }
 
-void mostrar_estado(habitacion *hab_actual, Jugador *jugador) {
-    printf("\n=== ESTADO ACTUAL ===\n");
-    printf("Ubicación: %s\n", hab_actual->nombre);
-    printf("Descripción: %s\n", hab_actual->descripcion);
-    
-    printf("\nItems en la habitación:\n");
-    if (hab_actual->num_items == 0) {
-        printf("No hay items disponibles\n");
-    } else {
-        for (int i = 0; i < hab_actual->num_items; i++) {
-            printf("%d. %s (Valor: %d, Peso: %d)\n", 
-                   i+1, 
-                   hab_actual->items[i].nombre,
-                   hab_actual->items[i].valor,
-                   hab_actual->items[i].peso);
+int leer_opcion_valida(int min, int max) {
+    int opcion;
+    char buffer[100];
+    while (1) {
+        printf("Seleccione una opcion (%d-%d): ", min, max);
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+            printf("Error de lectura.\n");
+            continue;
         }
+        
+        if (sscanf(buffer, "%d", &opcion) != 1) {
+            printf("Entrada invalida. Por favor ingrese un numero.\n");
+            continue;
+        }
+        
+        if (opcion >= min && opcion <= max) {
+            return opcion;
+        }
+        
+        printf("Opcion fuera de rango. Intente nuevamente.\n");
     }
+}
+
+void mostrar_banner() {
+    limpiarPantalla();
+    printf("------------------------------------------\n");
+    printf("-           G R A P H Q U E S T          -\n");
+    printf("------------------------------------------\n\n");
+}
+
+void mostrar_estado(habitacion *hab_actual, Jugador *jugador, Map *habitaciones) {
+    printf("\n------------------------------------------\n");
+    printf("- %-38s -\n", hab_actual->nombre);
+    printf("------------------------------------------\n");
+    printf("- %-38s -\n", hab_actual->descripcion);
+    printf("------------------------------------------\n");
     
-    printf("\nInventario:\n");
-    if (list_size(jugador->inventario) == 0) {
-        printf("Inventario vacío\n");
+    // Mostrar items en la habitación
+    if (hab_actual->num_items > 0) {
+        printf("-  Items disponibles:                   -\n");
+        for (int i = 0; i < hab_actual->num_items; i++) {
+            printf("-  %d. %-20s (%2d pts, %2d kg) -\n", 
+                  i+1, hab_actual->items[i].nombre,
+                  hab_actual->items[i].valor,
+                  hab_actual->items[i].peso);
+        }
     } else {
+        printf("-  No hay items en esta habitacion      -\n");
+    }
+    printf("------------------------------------------\n");
+    
+    // Mostrar inventario
+    if (list_size(jugador->inventario) > 0) {
+        printf("-  Tu inventario:                       -\n");
         item_list *item;
         int i = 1;
         for (item = list_first(jugador->inventario); item != NULL; item = list_next(jugador->inventario)) {
-            printf("%d. %s (Valor: %d, Peso: %d)\n", 
-                   i++, 
-                   item->nombre,
-                   item->valor,
-                   item->peso);
+            printf("-  %d. %-20s (%2d pts, %2d kg) -\n", 
+                  i++, item->nombre, item->valor, item->peso);
         }
+    } else {
+        printf("-  Inventario vacio                     -\n");
     }
+    printf("------------------------------------------\n");
     
-    printf("\nTiempo restante: %d\n", jugador->tiempo);
-    printf("Puntaje actual: %d\n", jugador->puntaje);
-    printf("Peso total: %d\n", jugador->peso_total);
+    // Mostrar estado del jugador
+    printf("- Tiempo: %-4d  Puntaje: %-4d  Peso: %-3d  -\n", 
+          jugador->tiempo, jugador->puntaje, jugador->peso_total);
+    printf("------------------------------------------\n");
 }
 
 void recoger_item(habitacion *hab_actual, Jugador *jugador, int indice) {
     if (indice < 1 || indice > hab_actual->num_items) {
-        printf("Ítem no válido\n");
+        printf("Item no valido\n");
         return;
     }
     
@@ -224,7 +257,7 @@ void recoger_item(habitacion *hab_actual, Jugador *jugador, int indice) {
 
 void descartar_item(Jugador *jugador, int indice) {
     if (indice < 1 || indice > list_size(jugador->inventario)) {
-        printf("Ítem no válido\n");
+        printf("Item no valido\n");
         return;
     }
     
@@ -244,12 +277,75 @@ void descartar_item(Jugador *jugador, int indice) {
     jugador->tiempo--;
 }
 
-void mostrar_opciones_movimiento(habitacion *hab_actual) {
-    printf("\nOpciones de movimiento:\n");
-    if (hab_actual->arriba != -1) printf("1. Arriba (Habitación %d)\n", hab_actual->arriba);
-    if (hab_actual->abajo != -1) printf("2. Abajo (Habitación %d)\n", hab_actual->abajo);
-    if (hab_actual->izquierda != -1) printf("3. Izquierda (Habitación %d)\n", hab_actual->izquierda);
-    if (hab_actual->derecha != -1) printf("4. Derecha (Habitación %d)\n", hab_actual->derecha);
+int mostrar_opciones_movimiento(habitacion *hab_actual, Map *habitaciones) {
+    printf("\nOpciones de movimiento disponibles:\n");
+    int opcion_num = 1;
+    int opciones[4] = {-1, -1, -1, -1}; // Almacena los IDs de las habitaciones adyacentes
+    
+    // Mapear las opciones disponibles
+    if (hab_actual->arriba != -1) {
+        int *clave = malloc(sizeof(int));
+        *clave = hab_actual->arriba;
+        MapPair *pair = map_search(habitaciones, clave);
+        free(clave);
+        
+        if (pair) {
+            printf("%d. Arriba -> %s\n", opcion_num, ((habitacion*)pair->value)->nombre);
+            opciones[opcion_num-1] = hab_actual->arriba;
+            opcion_num++;
+        }
+    }
+    
+    if (hab_actual->abajo != -1) {
+        int *clave = malloc(sizeof(int));
+        *clave = hab_actual->abajo;
+        MapPair *pair = map_search(habitaciones, clave);
+        free(clave);
+        
+        if (pair) {
+            printf("%d. Abajo -> %s\n", opcion_num, ((habitacion*)pair->value)->nombre);
+            opciones[opcion_num-1] = hab_actual->abajo;
+            opcion_num++;
+        }
+    }
+    
+    if (hab_actual->izquierda != -1) {
+        int *clave = malloc(sizeof(int));
+        *clave = hab_actual->izquierda;
+        MapPair *pair = map_search(habitaciones, clave);
+        free(clave);
+        
+        if (pair) {
+            printf("%d. Izquierda -> %s\n", opcion_num, ((habitacion*)pair->value)->nombre);
+            opciones[opcion_num-1] = hab_actual->izquierda;
+            opcion_num++;
+        }
+    }
+    
+    if (hab_actual->derecha != -1) {
+        int *clave = malloc(sizeof(int));
+        *clave = hab_actual->derecha;
+        MapPair *pair = map_search(habitaciones, clave);
+        free(clave);
+        
+        if (pair) {
+            printf("%d. Derecha -> %s\n", opcion_num, ((habitacion*)pair->value)->nombre);
+            opciones[opcion_num-1] = hab_actual->derecha;
+            opcion_num++;
+        }
+    }
+    
+    // Si no hay opciones disponibles
+    if (opcion_num == 1) {
+        printf("No hay salidas disponibles desde esta habitacion.\n");
+        return -1;
+    }
+    
+    // Pedir selección al usuario
+    printf("Seleccione una opcion (1-%d): ", opcion_num-1);
+    int seleccion = leer_opcion_valida(1, opcion_num-1);
+    
+    return opciones[seleccion-1]; // Retorna el ID de la habitación seleccionada
 }
 
 int mover_jugador(habitacion *hab_actual, Jugador *jugador, int direccion) {
@@ -269,12 +365,12 @@ int mover_jugador(habitacion *hab_actual, Jugador *jugador, int direccion) {
             nuevo_id = hab_actual->derecha;
             break;
         default:
-            printf("Dirección no válida\n");
+            printf("Dirección no valida\n");
             return hab_actual->id;
     }
     
     if (nuevo_id == -1) {
-        printf("No puedes moverte en esa dirección\n");
+        printf("No puedes moverte en esa direccion\n");
         return hab_actual->id;
     }
     
@@ -288,8 +384,8 @@ int mover_jugador(habitacion *hab_actual, Jugador *jugador, int direccion) {
     return nuevo_id;
 }
 
-void jugar(Map *habitaciones, Map *grafo) {
-    int id_actual = 1; // Empezamos en la habitación 1 (Entrada principal)
+void jugar(Map *habitaciones, Map *grafo, int id_inicial) {
+    int id_actual = id_inicial;
     Jugador jugador;
     jugador.inventario = list_create();
     jugador.peso_total = 0;
@@ -297,12 +393,12 @@ void jugar(Map *habitaciones, Map *grafo) {
     jugador.tiempo = 50; // Tiempo inicial
     
     while (jugador.tiempo > 0) {
-        // Crear una clave para la búsqueda (así como se hizo en leer_archivo)
+        mostrar_banner();
+        
         int *clave = malloc(sizeof(int));
         *clave = id_actual;
-        
         MapPair *pair = map_search(habitaciones, clave);
-        free(clave); // Liberamos la memoria inmediatamente
+        free(clave);
         
         if (!pair) {
             printf("Error: habitacion no encontrada.\n");
@@ -310,9 +406,7 @@ void jugar(Map *habitaciones, Map *grafo) {
         }
         
         habitacion *hab_actual = pair->value;
-        
-        // Resto de tu código...
-        mostrar_estado(hab_actual, &jugador);
+        mostrar_estado(hab_actual, &jugador, habitaciones);
         
         if (hab_actual->final == 'S') {
             printf("\nFelicidades! Has llegado a la salida.\n");
@@ -326,44 +420,49 @@ void jugar(Map *habitaciones, Map *grafo) {
         printf("3. Moverse\n");
         printf("4. Reiniciar partida\n");
         printf("5. Salir del juego\n");
-        printf("Selecciona una opcion: ");
         
-        int opcion;
-        scanf("%d", &opcion);
+        int opcion = leer_opcion_valida(1, 5);
         
         switch(opcion) {
             case 1: // Recoger ítem
                 if (hab_actual->num_items > 0) {
-                    printf("Selecciona el item a recoger (1-%d): ", hab_actual->num_items);
-                    int item_idx;
-                    scanf("%d", &item_idx);
+                    printf("Seleccione el item a recoger (1-%d): ", hab_actual->num_items);
+                    int item_idx = leer_opcion_valida(1, hab_actual->num_items);
                     recoger_item(hab_actual, &jugador, item_idx);
                 } else {
                     printf("No hay items para recoger en esta habitacion.\n");
+                    presioneTeclaParaContinuar();
                 }
                 break;
                 
             case 2: // Descartar ítem
                 if (list_size(jugador.inventario) > 0) {
-                    printf("Selecciona el item a descartar (1-%d): ", list_size(jugador.inventario));
-                    int item_idx;
-                    scanf("%d", &item_idx);
+                    printf("Seleccione el item a descartar (1-%d): ", list_size(jugador.inventario));
+                    int item_idx = leer_opcion_valida(1, list_size(jugador.inventario));
                     descartar_item(&jugador, item_idx);
                 } else {
                     printf("No tienes items para descartar.\n");
+                    presioneTeclaParaContinuar();
                 }
                 break;
                 
             case 3: // Moverse
-                mostrar_opciones_movimiento(hab_actual);
-                printf("Selecciona una direccion: ");
-                int direccion;
-                scanf("%d", &direccion);
-                id_actual = mover_jugador(hab_actual, &jugador, direccion);
+            {
+                int id_destino = mostrar_opciones_movimiento(hab_actual, habitaciones);
+                if (id_destino != -1) {
+                // Calcular tiempo consumido
+                    int tiempo_consumido = (jugador.peso_total + 1) / 10;
+                    if (tiempo_consumido < 1) tiempo_consumido = 1;
+        
+                    jugador.tiempo -= tiempo_consumido;
+                    id_actual = id_destino;
+                    printf("Te has movido. Tiempo consumido: %d\n", tiempo_consumido);
+                }
+                presioneTeclaParaContinuar();
                 break;
+            }
                 
             case 4: // Reiniciar partida
-                // Limpiar inventario
                 while (list_size(jugador.inventario) > 0) {
                     item_list *item = list_popFront(jugador.inventario);
                     free(item->nombre);
@@ -374,11 +473,11 @@ void jugar(Map *habitaciones, Map *grafo) {
                 jugador.tiempo = 50;
                 id_actual = 1;
                 printf("Partida reiniciada.\n");
+                presioneTeclaParaContinuar();
                 break;
                 
             case 5: // Salir del juego
                 printf("Juego terminado. Puntaje final: %d\n", jugador.puntaje);
-                // Limpiar inventario antes de salir
                 while (list_size(jugador.inventario) > 0) {
                     item_list *item = list_popFront(jugador.inventario);
                     free(item->nombre);
@@ -387,18 +486,16 @@ void jugar(Map *habitaciones, Map *grafo) {
                 list_clean(jugador.inventario);
                 free(jugador.inventario);
                 return;
-                
-            default:
-                printf("Opción no valida.\n");
         }
         
         if (jugador.tiempo <= 0) {
-            printf("\n¡Se te ha acabado el tiempo!\n");
+            printf("\nSe te ha acabado el tiempo!\n");
             printf("Puntaje final: %d\n", jugador.puntaje);
+            presioneTeclaParaContinuar();
         }
     }
     
-    // Limpiar inventario al finalizar
+    // Limpieza final
     while (list_size(jugador.inventario) > 0) {
         item_list *item = list_popFront(jugador.inventario);
         free(item->nombre);
@@ -410,10 +507,29 @@ void jugar(Map *habitaciones, Map *grafo) {
 
 int main() {
     leer_archivo();
-
+    
     Map *grafo = construir_grafo(habitaciones);
-
-    jugar(habitaciones, grafo);
-
+    if (!grafo) {
+        printf("Error al construir el grafo.\n");
+        return 1;
+    }
+    
+    while (1) {
+        mostrar_banner();
+        printf("MENU PRINCIPAL\n");
+        printf("1. Nueva partida\n");
+        printf("2. Salir\n");
+        
+        int opcion = leer_opcion_valida(1, 2);
+        
+        if (opcion == 1) {
+            jugar(habitaciones, grafo, 1);
+        } else {
+            break;
+        }
+    }
+    
+    
+    
     return 0;
 }
