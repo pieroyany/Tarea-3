@@ -41,7 +41,7 @@ int is_equal_int(void *a, void *b) {
 }
 
 int is_equal_habitacion(void *a, void *b) {
-    return a == b; // compara punteros directamente
+    return a == b;
 }
 
 item_list* parse_items(char *cadena, int *num_items) {
@@ -74,14 +74,14 @@ List *leer_archivo() {
         return NULL;
     }
 
-    habitaciones = map_create(is_equal_int);
+    habitaciones = map_create(is_equal_int); // Crear un mapa para las habitaciones
 
     char **campos = leer_linea_csv(archivo, ',');
 
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
         habitacion *h = malloc(sizeof(habitacion));
 
-
+        
         h->id = atoi(campos[0]);
         h->nombre = strdup(campos[1]);
         h->descripcion = strdup(campos[2]);
@@ -102,19 +102,21 @@ List *leer_archivo() {
         int *id_ptr = malloc(sizeof(int));
         *id_ptr = h->id;
 
-        map_insert(habitaciones, id_ptr, h_ptr);
+        map_insert(habitaciones, id_ptr, h_ptr); // Insertar la habitación en el mapa
+        free(campos);
     }
     fclose(archivo);
 }
 
 Map *construir_grafo(Map *habitaciones) {
-    Map *grafo = map_create(is_equal_habitacion);
+    Map *grafo = map_create(is_equal_habitacion); // Crear un mapa para el grafo de habitaciones
 
     MapPair *pair = map_first(habitaciones);
     while (pair != NULL) {
         habitacion *hab = pair->value;
         List *adyacentes = list_create();
-
+        
+        // Agregar adyacentes según las conexiones
         if (hab->arriba != -1) {
             MapPair *p = map_search(habitaciones, &hab->arriba);
             if (p) list_pushBack(adyacentes, p->value);
@@ -132,29 +134,9 @@ Map *construir_grafo(Map *habitaciones) {
             if (p) list_pushBack(adyacentes, p->value);
         }
 
-        map_insert(grafo, hab, adyacentes);
+        map_insert(grafo, hab, adyacentes); // Insertar la lista de adyacentes en el grafo
         pair = map_next(habitaciones);
     }
-
-    //imprimir
-    /*
-    printf("----- Grafo de habitaciones -----\n");
-    MapPair *par = map_first(grafo);
-    while (par != NULL) {
-        habitacion *h = par->key;
-        List *ady = par->value;
-        printf("Habitacion %s (ID: %d) conecta con:\n", h->nombre, h->id);
-
-        habitacion *vecino = list_first(ady);
-        while (vecino != NULL) {
-            printf("  -> %s (ID: %d)\n", vecino->nombre, vecino->id);
-            vecino = list_next(ady);
-        }
-
-        printf("----------------------\n");
-        par = map_next(grafo);
-    }
-    */
     return grafo;
 }
 
@@ -235,14 +217,14 @@ void recoger_item(habitacion *hab_actual, Jugador *jugador, int indice) {
         return;
     }
     
-    item_list *item = &hab_actual->items[indice-1];
+    item_list *item = &hab_actual->items[indice-1]; // Obtener el item seleccionado 
     
     item_list *nuevo_item = malloc(sizeof(item_list));
     nuevo_item->nombre = strdup(item->nombre);
     nuevo_item->valor = item->valor;
     nuevo_item->peso = item->peso;
     
-    list_pushBack(jugador->inventario, nuevo_item);
+    list_pushBack(jugador->inventario, nuevo_item); // Agregar el item al inventario del jugador
     jugador->puntaje += item->valor;
     jugador->peso_total += item->peso;
     
@@ -261,7 +243,7 @@ void descartar_item(Jugador *jugador, int indice) {
         return;
     }
     
-    item_list *item = list_first(jugador->inventario);
+    item_list *item = list_first(jugador->inventario); // Obtener el primer item
     for (int i = 1; i < indice; i++) {
         item = list_next(jugador->inventario);
     }
@@ -270,7 +252,8 @@ void descartar_item(Jugador *jugador, int indice) {
     jugador->puntaje -= item->valor;
     jugador->peso_total -= item->peso;
     
-    list_popCurrent(jugador->inventario);
+    list_popCurrent(jugador->inventario); // Eliminar el item del inventario
+    // Liberar memoria del item
     free(item->nombre);
     free(item);
     
@@ -397,7 +380,7 @@ void jugar(Map *habitaciones, Map *grafo, int id_inicial) {
         
         int *clave = malloc(sizeof(int));
         *clave = id_actual;
-        MapPair *pair = map_search(habitaciones, clave);
+        MapPair *pair = map_search(habitaciones, clave); 
         free(clave);
         
         if (!pair) {

@@ -64,16 +64,17 @@ id,nombre,descripcion,items,arriba,abajo,izquierda,derecha,final
 - `int is_equal_int(void *a, void *b)`
 - `int is_equal_habitacion(void *a, void *b)`
 
----
+### Opciones dentro del juego
 
-## 🔧 Funciones que podrían mejorarse
+### En el menú
+- `Nueva Partida` -> Inicias el juego
+- `Salir` -> Se cierrra el programa
 
-| Función | Observación | Posible mejora |
-|--------|-------------|-----------------|
-| `leer_archivo()` | Copia estructuras y duplica memoria innecesariamente | Cargar datos directamente sin duplicar `habitacion` |
-| `mostrar_opciones_movimiento()` | Código repetido por dirección | Refactorizar con bucle y punteros |
-| `mover_jugador()` | Parcialmente duplicada en `jugar()` | Centralizar cálculo de movimiento |
-| `descartar_item()` | No pide confirmación | Agregar confirmación antes de borrar |
-| `parse_items()` | Límite rígido de 2 ítems | Usar lista dinámica (`List*`) en lugar de array |
+### En el juego
+- `Recoger item` -> Recoges alguno de los ítems que hay en la sala, si es que hay
+- `Descartar item` -> eliges algún ítem de tu inventario para descartarlo (lo haces desaparecer)
+- `Moverse` -> Abre un pseudo-menú en el cual saldrán todas las direcciones posibles
+- `Reiniciar partida` -> Reinicia la partida
+- `Salir del juego` -> Vuelves al menú principal
 
 ---
