@@ -35,7 +35,9 @@ typedef struct {
 } Jugador;
 
 int is_equal_int(void *a, void *b) {
-    return *((int *)a) == *((int *)b);
+    int *key1 = (int *)a;
+    int *key2 = (int *)b;
+    return *key1 == *key2;
 }
 
 int is_equal_habitacion(void *a, void *b) {
@@ -286,12 +288,132 @@ int mover_jugador(habitacion *hab_actual, Jugador *jugador, int direccion) {
     return nuevo_id;
 }
 
+void jugar(Map *habitaciones, Map *grafo) {
+    int id_actual = 1; // Empezamos en la habitación 1 (Entrada principal)
+    Jugador jugador;
+    jugador.inventario = list_create();
+    jugador.peso_total = 0;
+    jugador.puntaje = 0;
+    jugador.tiempo = 50; // Tiempo inicial
+    
+    while (jugador.tiempo > 0) {
+        // Crear una clave para la búsqueda (así como se hizo en leer_archivo)
+        int *clave = malloc(sizeof(int));
+        *clave = id_actual;
+        
+        MapPair *pair = map_search(habitaciones, clave);
+        free(clave); // Liberamos la memoria inmediatamente
+        
+        if (!pair) {
+            printf("Error: habitacion no encontrada.\n");
+            break;
+        }
+        
+        habitacion *hab_actual = pair->value;
+        
+        // Resto de tu código...
+        mostrar_estado(hab_actual, &jugador);
+        
+        if (hab_actual->final == 'S') {
+            printf("\nFelicidades! Has llegado a la salida.\n");
+            printf("Puntaje final: %d\n", jugador.puntaje);
+            break;
+        }
+        
+        printf("\nOpciones:\n");
+        printf("1. Recoger item\n");
+        printf("2. Descartar item\n");
+        printf("3. Moverse\n");
+        printf("4. Reiniciar partida\n");
+        printf("5. Salir del juego\n");
+        printf("Selecciona una opcion: ");
+        
+        int opcion;
+        scanf("%d", &opcion);
+        
+        switch(opcion) {
+            case 1: // Recoger ítem
+                if (hab_actual->num_items > 0) {
+                    printf("Selecciona el item a recoger (1-%d): ", hab_actual->num_items);
+                    int item_idx;
+                    scanf("%d", &item_idx);
+                    recoger_item(hab_actual, &jugador, item_idx);
+                } else {
+                    printf("No hay items para recoger en esta habitacion.\n");
+                }
+                break;
+                
+            case 2: // Descartar ítem
+                if (list_size(jugador.inventario) > 0) {
+                    printf("Selecciona el item a descartar (1-%d): ", list_size(jugador.inventario));
+                    int item_idx;
+                    scanf("%d", &item_idx);
+                    descartar_item(&jugador, item_idx);
+                } else {
+                    printf("No tienes items para descartar.\n");
+                }
+                break;
+                
+            case 3: // Moverse
+                mostrar_opciones_movimiento(hab_actual);
+                printf("Selecciona una direccion: ");
+                int direccion;
+                scanf("%d", &direccion);
+                id_actual = mover_jugador(hab_actual, &jugador, direccion);
+                break;
+                
+            case 4: // Reiniciar partida
+                // Limpiar inventario
+                while (list_size(jugador.inventario) > 0) {
+                    item_list *item = list_popFront(jugador.inventario);
+                    free(item->nombre);
+                    free(item);
+                }
+                jugador.peso_total = 0;
+                jugador.puntaje = 0;
+                jugador.tiempo = 50;
+                id_actual = 1;
+                printf("Partida reiniciada.\n");
+                break;
+                
+            case 5: // Salir del juego
+                printf("Juego terminado. Puntaje final: %d\n", jugador.puntaje);
+                // Limpiar inventario antes de salir
+                while (list_size(jugador.inventario) > 0) {
+                    item_list *item = list_popFront(jugador.inventario);
+                    free(item->nombre);
+                    free(item);
+                }
+                list_clean(jugador.inventario);
+                free(jugador.inventario);
+                return;
+                
+            default:
+                printf("Opción no valida.\n");
+        }
+        
+        if (jugador.tiempo <= 0) {
+            printf("\n¡Se te ha acabado el tiempo!\n");
+            printf("Puntaje final: %d\n", jugador.puntaje);
+        }
+    }
+    
+    // Limpiar inventario al finalizar
+    while (list_size(jugador.inventario) > 0) {
+        item_list *item = list_popFront(jugador.inventario);
+        free(item->nombre);
+        free(item);
+    }
+    list_clean(jugador.inventario);
+    free(jugador.inventario);
+}
+
 int main() {
     leer_archivo();
 
     Map *grafo = construir_grafo(habitaciones);
 
-    //jugar(habitaciones, grafo);
+    jugar(habitaciones, grafo);
 
     return 0;
 }
