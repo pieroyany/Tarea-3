@@ -529,7 +529,8 @@ int main() {
         }
     }
     
-    
+    free(grafo);
+    map_clean(habitaciones);
     
     return 0;
 }
